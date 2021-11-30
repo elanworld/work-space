@@ -8,7 +8,7 @@ import StreamZip from 'node-stream-zip';
 import path from "path";
 import {resolve} from "dns";
 
-function runCmd(cmd: string, arg: readonly string[] | undefined, options: childProcess.SpawnOptionsWithoutStdio | undefined) {
+function runCmd(cmd: string, arg: readonly string[], options: childProcess.SpawnOptionsWithoutStdio) {
     let process = childProcess.spawn(cmd, arg, options)
     process.stdout && process.stdout.on('data', function (data) {
         console.log(data.toString())
@@ -56,30 +56,29 @@ function writeFile(timeout: any, timeoutFile: string) {
     })
 }
 
-const sleep = (delay: number | undefined) => new Promise((resolve, reject) => setTimeout(() => resolve(""), delay))
+const sleep = (delay: number) => new Promise((resolve, reject) => setTimeout(() => resolve(""), delay))
 
 async function main() {
-    let timeout = process.env.INPUT_TIME_LIMIT || 600
+    let timeout = process.env["INPUT_TIME_LIMIT"] || 600
+    let passwd = process.env["INPUT_USER_PASSWD"]
+    let serverHost = process.env["INPUT_SERVER_HOST"]
     let loopTime = 20
     let file = path.join(os.homedir(), "timeLimit");
-    let workDirectory = "./cache-work";
+    let workDirectory = path.join(os.homedir(), "cache-work");
     const fileUrl = 'https://github.com/fatedier/frp/releases/download/v0.38.0/frp_0.38.0_linux_arm64.tar.gz';
     const filename = 'frp_0.38.0_linux_arm64.tar.gz';
 
     writeFile(timeout, file)
     if (!fs.existsSync(workDirectory)) {
-        fs.mkdir(workDirectory)
+        fs.mkdir(workDirectory, { recursive: true }, () => {})
     }
     process.chdir(workDirectory)
     await syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")))
-    let tar = runCmd("tar", ["-xvf", filename], {});
+    let tar = runCmd("tar", ["-xf", filename], {});
     await syncProcess(resolve => tar.on("close", () => resolve('')))
     process.chdir('./frp_0.38.0_linux_arm64')
-    let passwd = core.getInput("USER_PASSWD");
-    let serverHost = core.getInput("SERVER_HOST");
     childProcess.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = " + serverHost + "#' -e 's#remote_port = 6000#remote_port = 10026#' frpc.ini")
-    childProcess.execSync("echo -e \"" + passwd + "\\n" + passwd + "\\n\" | sudo passwd \"$USER\"")
-    runCmd("echo ", ["-c", "frpc.ini"], {});
+    // childProcess.execSync("echo -e \"" + passwd + "\\n" + passwd + "\\n\" | sudo passwd \"$USER\"")
     let frpc = runCmd("./frpc", ["-c", "frpc.ini"], {});
     while (timeout > 0) {
         await sleep(loopTime * 1000)
@@ -91,7 +90,6 @@ async function main() {
     }
     frpc.kill("SIGINT")
 }
-
 
 main()
 

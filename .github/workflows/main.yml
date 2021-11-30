@@ -32,3 +32,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Start server action
         uses: elanworld/work-space@main
+        with:
+          user_passwd: ${{ secrets.USER_PASSWD }}
+          server_host: ${{ secrets.SERVER_HOST }}
