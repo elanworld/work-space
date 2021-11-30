@@ -1,0 +1,26 @@
+{
+  "name": "work-space",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "tsc && ncc build lib/main.js && node dist/index.js",
+    "build": "tsc && ncc build lib/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elanworld/work-space.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/elanworld/work-space/issues"
+  },
+  "homepage": "https://github.com/elanworld/work-space#readme",
+  "dependencies": {
+    "@actions/core": "^1.6.0",
+    "@types/node": "^16.11.10",
+    "node-stream-zip": "^1.15.0",
+    "request": "^2.88.2"
+  }
+}
