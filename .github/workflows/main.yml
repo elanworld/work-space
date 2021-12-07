@@ -36,3 +36,4 @@ jobs:
         with:
           user_passwd: ${{ secrets.USER_PASSWD }}
           server_host: ${{ secrets.SERVER_HOST }}
+          time_limit: 3600
