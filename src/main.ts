@@ -75,10 +75,14 @@ async function main() {
     await syncProcess(resolve => tar.on("close", () => resolve('')))
     process.chdir('./frp_0.38.0_linux_amd64')
     childProcess.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = " + serverHost + "#' -e 's#remote_port = 6000#remote_port = 10026#' frpc.ini")
+    // changing password
     var chpasswd = childProcess.spawn('passwd')
     chpasswd.stdin.write(passwd)
     chpasswd.stdin.end()
     let frpc = runCmd("./frpc", [], {});
+    // add public key auth
+    childProcess.execSync("sudo sed -i -e 's#\\#StrictModes yes#StrictModes no#' /etc/ssh/sshd_config")
+    childProcess.execSync("sudo systemctl restart ssh")
     while (timeout > 0) {
         await sleep(loopTime * 1000)
         let line = fs.readFileSync(file, "utf-8");
