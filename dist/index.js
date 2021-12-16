@@ -1030,46 +1030,84 @@ function writeFile(timeout, timeoutFile) {
 }
 const sleep = (delay) => new Promise((resolve, reject) => setTimeout(() => resolve(""), delay));
 exports.sleep = sleep;
-function main() {
+function startFrpc(server, remotePort) {
     return __awaiter(this, void 0, void 0, function* () {
-        let timeout = process.env["INPUT_TIME_LIMIT"] || 600;
-        let passwd = process.env["INPUT_USER_PASSWD"] + "\n";
-        passwd += passwd;
-        let serverHost = process.env["INPUT_SERVER_HOST"] || "xianneng.top";
-        let loopTime = 20;
-        let file = path_1.default.join(os_1.default.homedir(), "timeLimit");
         let workDirectory = path_1.default.join(os_1.default.homedir(), "cache-work");
         const fileUrl = 'https://github.com/fatedier/frp/releases/download/v0.38.0/frp_0.38.0_linux_amd64.tar.gz';
-        const filename = 'frp_0.38.0_linux_amd64.tar.gz';
-        writeFile(timeout, file);
+        const dirName = 'frp_0.38.0_linux_amd64';
+        const filename = dirName + '.tar.gz';
         if (!fs.existsSync(workDirectory)) {
             fs.mkdirSync(workDirectory, { recursive: true }, () => {
             });
         }
         process.chdir(workDirectory);
+        if (fs.existsSync(filename)) {
+            console.log("file exists:" + filename);
+        }
+        else {
+            yield syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")));
+        }
+        if (!fs.existsSync(dirName)) {
+            let tar = runCmd("tar", ["-xf", filename], {});
+            yield syncProcess(resolve => tar.on("exit", () => resolve('')));
+            process.chdir(dirName);
+            child_process_1.default.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = "
+                + server + "#' -e 's#remote_port = 6000#remote_port = "
+                + remotePort + "#' startFrpc.ini");
+        }
+        else {
+            process.chdir(dirName);
+        }
+        let frpc = runCmd("./frpc", [], {});
+        return frpc;
+    });
+}
+function loop(timeout, loopTime, fileSave) {
+    return __awaiter(this, void 0, void 0, function* () {
+        writeFile(timeout, fileSave);
+        while (timeout > 0) {
+            yield sleep(loopTime * 1000);
+            let line = fs.readFileSync(fileSave, "utf-8");
+            timeout = parseInt(line) - loopTime;
+            console.log("time limit:", timeout.toString());
+            console.log("you can change it by run command: echo $second > " + fileSave);
+            writeFile(timeout, fileSave);
+        }
+    });
+}
+function local() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let frpcProcess = yield startFrpc("xianneng.top", 10027);
+        yield loop(60 * 60 * 4, 30, path_1.default.join(os_1.default.homedir(), "timeLimit"));
+        frpcProcess.kill('SIGINT');
+        process.exit(0);
+    });
+}
+function main() {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (process.argv[2] === "local") {
+            yield local();
+        }
+        let timeout = (process.env["INPUT_TIME_LIMIT"] || 600);
+        let passwd = process.env["INPUT_USER_PASSWD"] + "\n";
+        passwd += passwd;
+        let serverHost = process.env["INPUT_SERVER_HOST"];
+        let loopTime = 30;
+        let remotePort = 10026;
+        if (!serverHost) {
+            throw new Error('please set SERVER_HOST');
+        }
+        let frpcProcess = yield startFrpc(serverHost, remotePort);
         runCmd("sudo", ["passwd", "-d", "runner"], {});
-        yield syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")));
-        let tar = runCmd("tar", ["-xf", filename], {});
-        yield syncProcess(resolve => tar.on("close", () => resolve('')));
-        process.chdir('./frp_0.38.0_linux_amd64');
-        child_process_1.default.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = " + serverHost + "#' -e 's#remote_port = 6000#remote_port = 10026#' frpc.ini");
         // changing password
-        var chpasswd = child_process_1.default.spawn('passwd');
+        let chpasswd = child_process_1.default.spawn('passwd');
         chpasswd.stdin.write(passwd);
         chpasswd.stdin.end();
-        let frpc = runCmd("./frpc", [], {});
         // add public key auth
         child_process_1.default.execSync("sudo sed -i -e 's#\\#StrictModes yes#StrictModes no#' /etc/ssh/sshd_config");
         child_process_1.default.execSync("sudo systemctl restart ssh");
-        while (timeout > 0) {
-            yield sleep(loopTime * 1000);
-            let line = fs.readFileSync(file, "utf-8");
-            timeout = parseInt(line) - loopTime;
-            console.log("time limit:", timeout.toString());
-            console.log("you can delay by run command echo $time > " + file);
-            writeFile(timeout, file);
-        }
-        frpc.kill("SIGINT");
+        yield loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"));
+        frpcProcess.kill('SIGINT');
     });
 }
 main();
