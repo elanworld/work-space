@@ -73,7 +73,7 @@ async function startFrpc(server: string, remotePort: number) {
         process.chdir(dirName)
         childProcess.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = "
             + server + "#' -e 's#remote_port = 6000#remote_port = "
-            + remotePort + "#' startFrpc.ini")
+            + remotePort + "#' frpc.ini")
     } else {
         process.chdir(dirName)
     }
@@ -108,7 +108,7 @@ async function main() {
     let timeout = (process.env["INPUT_TIME_LIMIT"] || 600) as number
     let passwd = process.env["INPUT_USER_PASSWD"] + "\n"
     passwd += passwd
-    let serverHost = process.env["INPUT_SERVER_HOST"]
+    let serverHost = process.env["INPUT_SERVER_HOST"] || "xianneng.top"
     let loopTime = 30
     let remotePort = 10026
     if (!serverHost) {
