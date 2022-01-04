@@ -4491,6 +4491,25 @@ nacl.setPRNG = function(fn) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -4504,74 +4523,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runCmd = exports.sleep = exports.unzip = exports.downloadFile = void 0;
-const os_1 = __importDefault(__webpack_require__(87));
-const child_process_1 = __importDefault(__webpack_require__(129));
-const request = __webpack_require__(830);
-const fs = __webpack_require__(747);
-const node_stream_zip_1 = __importDefault(__webpack_require__(976));
+const utils = __importStar(__webpack_require__(611));
 const path_1 = __importDefault(__webpack_require__(622));
-function runCmd(cmd, arg, options) {
-    let process = child_process_1.default.spawn(cmd, arg, options);
-    process.stdout && process.stdout.on('data', function (data) {
-        console.log(data.toString());
-    });
-    process.stderr && process.stderr.on('data', function (data) {
-        console.log(data.toString());
-    });
-    return process;
-}
-exports.runCmd = runCmd;
-function syncProcess(fun) {
-    return new Promise((resolve) => {
-        fun(resolve);
-    });
-}
-function unzip(file) {
-    let zip = new node_stream_zip_1.default({
-        file: file,
-        storeEntries: true
-    });
-    zip.on("ready", () => {
-        zip.extract(null, "./", (err, num) => {
-            console.log(err ? err : `Extracted ${num} entries`);
-            zip.close();
-        });
-    });
-}
-exports.unzip = unzip;
-function downloadFile(uri, filename, callback) {
-    let stream = fs.createWriteStream(filename);
-    request(uri).pipe(stream).on('close', callback);
-}
-exports.downloadFile = downloadFile;
-function writeFile(timeout, timeoutFile) {
-    fs.writeFileSync(timeoutFile, timeout.toString(), {
-        encoding: "utf-8"
-    });
-}
-const sleep = (delay) => new Promise((resolve, reject) => setTimeout(() => resolve(""), delay));
-exports.sleep = sleep;
+const os_1 = __importDefault(__webpack_require__(87));
+const fs_1 = __importDefault(__webpack_require__(747));
+const child_process_1 = __importDefault(__webpack_require__(129));
 function startFrpc(server, remotePort) {
     return __awaiter(this, void 0, void 0, function* () {
         let workDirectory = path_1.default.join(os_1.default.homedir(), "cache-work");
         const fileUrl = 'https://github.com/fatedier/frp/releases/download/v0.38.0/frp_0.38.0_linux_amd64.tar.gz';
         const dirName = 'frp_0.38.0_linux_amd64';
         const filename = dirName + '.tar.gz';
-        if (!fs.existsSync(workDirectory)) {
-            fs.mkdirSync(workDirectory, { recursive: true }, () => {
-            });
+        if (!fs_1.default.existsSync(workDirectory)) {
+            fs_1.default.mkdirSync(workDirectory, { recursive: true });
         }
         process.chdir(workDirectory);
-        if (fs.existsSync(filename)) {
+        if (fs_1.default.existsSync(filename)) {
             console.log("file exists:" + filename);
         }
         else {
-            yield syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")));
+            yield utils.syncProcess(resolve => utils.downloadFile(fileUrl, filename, () => resolve("")));
         }
-        if (!fs.existsSync(dirName)) {
-            let tar = runCmd("tar", ["-xf", filename], {});
-            yield syncProcess(resolve => tar.on("exit", () => resolve('')));
+        if (!fs_1.default.existsSync(dirName)) {
+            let tar = utils.runCmd("tar", ["-xf", filename], {});
+            yield utils.syncProcess(resolve => tar.on("exit", () => resolve('')));
             process.chdir(dirName);
             child_process_1.default.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = "
                 + server + "#' -e 's#remote_port = 6000#remote_port = "
@@ -4580,27 +4555,15 @@ function startFrpc(server, remotePort) {
         else {
             process.chdir(dirName);
         }
-        let frpc = runCmd("./frpc", [], {});
+        let frpc = utils.runCmd("./frpc", [], {});
         return frpc;
-    });
-}
-function loop(timeout, loopTime, fileSave) {
-    return __awaiter(this, void 0, void 0, function* () {
-        writeFile(timeout, fileSave);
-        while (timeout > 0) {
-            yield sleep(loopTime * 1000);
-            let line = fs.readFileSync(fileSave, "utf-8");
-            timeout = parseInt(line) - loopTime;
-            console.log("time limit:", timeout.toString());
-            console.log("you can change it by run command: echo $second > " + fileSave);
-            writeFile(timeout, fileSave);
-        }
     });
 }
 function local() {
     return __awaiter(this, void 0, void 0, function* () {
         let frpcProcess = yield startFrpc("xianneng.top", 10027);
-        yield loop(60 * 60 * 4, 30, path_1.default.join(os_1.default.homedir(), "timeLimit"));
+        yield utils.loop(60 * 60 * 4, 30, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
+        });
         frpcProcess.kill('SIGINT');
         process.exit(0);
     });
@@ -4620,15 +4583,9 @@ function main() {
             throw new Error('please set SERVER_HOST');
         }
         let frpcProcess = yield startFrpc(serverHost, remotePort);
-        runCmd("sudo", ["passwd", "-d", "runner"], {});
-        // changing password
-        let chpasswd = child_process_1.default.spawn('passwd');
-        chpasswd.stdin.write(passwd);
-        chpasswd.stdin.end();
-        // add public key auth
-        child_process_1.default.execSync("sudo sed -i -e 's#\\#StrictModes yes#StrictModes no#' /etc/ssh/sshd_config");
-        child_process_1.default.execSync("sudo systemctl restart ssh");
-        yield loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"));
+        utils.changePasswd(passwd);
+        yield utils.loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
+        });
         frpcProcess.kill('SIGINT');
     });
 }
@@ -17161,6 +17118,199 @@ function write(key, options) {
 /***/ (function(module) {
 
 module.exports = require("http");
+
+/***/ }),
+
+/***/ 611:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.changePasswd = exports.loop = exports.syncProcess = exports.runCmd = exports.sleep = exports.unzip = exports.downloadFile = void 0;
+const os_1 = __importDefault(__webpack_require__(87));
+const child_process_1 = __importDefault(__webpack_require__(129));
+const node_stream_zip_1 = __importDefault(__webpack_require__(976));
+const path_1 = __importDefault(__webpack_require__(622));
+const request = __webpack_require__(830);
+const fs = __webpack_require__(747);
+function runCmd(cmd, arg, options) {
+    let process = child_process_1.default.spawn(cmd, arg, options);
+    process.stdout && process.stdout.on('data', function (data) {
+        console.log(data.toString());
+    });
+    process.stderr && process.stderr.on('data', function (data) {
+        console.log(data.toString());
+    });
+    return process;
+}
+exports.runCmd = runCmd;
+function syncProcess(fun) {
+    return new Promise((resolve) => {
+        fun(resolve);
+    });
+}
+exports.syncProcess = syncProcess;
+function unzip(file, out, func) {
+    let zip = new node_stream_zip_1.default({
+        file: file,
+        storeEntries: true
+    });
+    if (!fs.existsSync(out)) {
+        fs.mkdirSync(out, { recursive: true }, () => {
+        });
+    }
+    zip.on('ready', () => {
+        zip.extract(null, out, (err, num) => {
+            console.log(err ? err : `Extracted ${num} entries`);
+            zip.close();
+            func();
+        });
+    });
+}
+exports.unzip = unzip;
+function downloadFile(uri, filename, callback) {
+    let stream = fs.createWriteStream(filename);
+    request(uri).pipe(stream).on('close', callback);
+}
+exports.downloadFile = downloadFile;
+function writeFile(timeout, timeoutFile) {
+    fs.writeFileSync(timeoutFile, timeout.toString(), {
+        encoding: 'utf-8'
+    });
+}
+function sleep(delay) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => resolve(''), delay);
+    });
+}
+exports.sleep = sleep;
+function startNgrok(token, localPort) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let workDirectory = path_1.default.join(os_1.default.homedir(), 'cache-work');
+        let fileUrl = '';
+        if (os_1.default.platform() === 'linux') {
+            fileUrl = 'https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-386.zip';
+        }
+        if (os_1.default.platform() === 'win32') {
+            fileUrl = 'https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip';
+        }
+        if (os_1.default.platform() === 'darwin') {
+            fileUrl = 'https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-darwin-amd64.zip';
+        }
+        const dirName = 'ngrok-stable';
+        const filename = dirName + '.zip';
+        if (!fs.existsSync(workDirectory)) {
+            fs.mkdirSync(workDirectory, { recursive: true }, () => {
+            });
+        }
+        process.chdir(workDirectory);
+        if (fs.existsSync(filename)) {
+            console.log('file exists:' + filename);
+        }
+        else {
+            yield syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve('')));
+        }
+        if (!fs.existsSync(dirName)) {
+            yield syncProcess(resolve => unzip(filename, dirName, () => resolve('')));
+            process.chdir(dirName);
+        }
+        else {
+            process.chdir(dirName);
+        }
+        let logFile = '.ngrok.log';
+        if (fs.existsSync(logFile)) {
+            fs.rmSync(logFile);
+        }
+        let frcExe = './ngrok';
+        if (os_1.default.platform() === 'win32') {
+            frcExe = 'ngrok.exe';
+        }
+        else {
+            child_process_1.default.execSync('chmod 777 ngrok');
+        }
+        child_process_1.default.execSync(frcExe + ' authtoken ' + token);
+        return runCmd(frcExe, ['tcp', String(localPort), '--log', logFile], {});
+    });
+}
+function changePasswd(passwd) {
+    if (os_1.default.platform() === 'linux') {
+        console.log(child_process_1.default.execSync('sudo passwd -d $USER').toString());
+        let chpasswd = child_process_1.default.spawn('passwd');
+        chpasswd.stdin.write(passwd + '\n' + passwd + '\n');
+        chpasswd.stdin.end();
+        // add public key auth
+        child_process_1.default.execSync("sudo sed -i -e 's#\\#StrictModes yes#StrictModes no#' /etc/ssh/sshd_config");
+        child_process_1.default.execSync('sudo systemctl restart ssh');
+    }
+    else if (os_1.default.platform() === 'win32') {
+        let user = process.env.USERNAME;
+        child_process_1.default.execSync('net user ' + user + ' ' + passwd);
+        child_process_1.default.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_terminalservicesetting where (__CLASS != \"\") call setallowtsconnections 1");
+        child_process_1.default.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_tsgeneralsetting where (TerminalName ='RDP-Tcp') call setuserauthenticationrequired 0");
+        child_process_1.default.execSync("reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f");
+    }
+    else {
+        let userAdd = path_1.default.resolve(__dirname, 'useradd.sh');
+        child_process_1.default.execSync('export USER=virtual');
+        child_process_1.default.execSync('chmod 777 ' + userAdd);
+        child_process_1.default.execSync('sudo ' + userAdd + ' virtual ' + passwd);
+    }
+}
+exports.changePasswd = changePasswd;
+function loop(timeout, loopTime, fileSave, func) {
+    return __awaiter(this, void 0, void 0, function* () {
+        writeFile(timeout, fileSave);
+        while (timeout > 0) {
+            yield sleep(loopTime * 1000);
+            let line = fs.readFileSync(fileSave, 'utf-8');
+            timeout = parseInt(line) - loopTime;
+            console.log('time limit:', timeout.toString());
+            console.log('you can change it by run command: echo $second > ' + fileSave);
+            console.log('====================================');
+            writeFile(timeout, fileSave);
+            func();
+        }
+    });
+}
+exports.loop = loop;
+function main() {
+    return __awaiter(this, void 0, void 0, function* () {
+        let token = process.env['INPUT_NGROK_TOKEN'];
+        let passwd = process.env['INPUT_USER_PASSWD'];
+        let forwardPort = process.env['INPUT_FORWARD_PORT'];
+        let timeout = (process.env['INPUT_TIME_LIMIT'] || 600);
+        let loopTime = 20;
+        if (!token) {
+            throw new Error('please set NGROK_TOKEN');
+        }
+        let ngrokProcess = yield startNgrok(token, forwardPort);
+        changePasswd(passwd);
+        yield loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), 'timeLimit'), () => {
+            let lines = fs.readFileSync('.ngrok.log');
+            let match = lines.toString().match('.*url=tcp://(.*):(.*)');
+            let username = os_1.default.userInfo().username;
+            if (os_1.default.platform() === 'darwin') {
+                username = 'virtual';
+            }
+            console.log('Connect command:', 'ssh ' + username + '@' + match[1] + ' -p ' + match[2]);
+        });
+        ngrokProcess.kill('SIGINT');
+    });
+}
+
 
 /***/ }),
 
