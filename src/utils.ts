@@ -49,8 +49,8 @@ function downloadFile(uri: string, filename: string, callback: () => void) {
 
 }
 
-function writeFile(timeout: any, timeoutFile: string) {
-    fs.writeFileSync(timeoutFile, timeout.toString(), {
+function writeFile(text: string, file: string) {
+    fs.writeFileSync(file, text, {
         encoding: 'utf-8'
     })
 }
@@ -82,11 +82,11 @@ async function startNgrok(token: string, localPort: number) {
     process.chdir(workDirectory)
     if (fs.existsSync(filename)) {
         console.log('file exists:' + filename)
-    }else {
+    } else {
         await syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve('')))
     }
     if (!fs.existsSync(dirName)) {
-        await syncProcess(resolve => unzip(filename, dirName, ()=>resolve('')))
+        await syncProcess(resolve => unzip(filename, dirName, () => resolve('')))
         process.chdir(dirName)
     } else {
         process.chdir(dirName)
@@ -109,7 +109,7 @@ function changePasswd(passwd: string) {
     if (os.platform() === 'linux') {
         console.log(childProcess.execSync('sudo passwd -d $USER').toString());
         let chpasswd = childProcess.spawn('passwd')
-        chpasswd.stdin.write(passwd +'\n' + passwd +'\n')
+        chpasswd.stdin.write(passwd + '\n' + passwd + '\n')
         chpasswd.stdin.end()
         // add public key auth
         childProcess.execSync("sudo sed -i -e 's#\\#StrictModes yes#StrictModes no#' /etc/ssh/sshd_config")
@@ -120,16 +120,16 @@ function changePasswd(passwd: string) {
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_terminalservicesetting where (__CLASS != \"\") call setallowtsconnections 1")
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_tsgeneralsetting where (TerminalName ='RDP-Tcp') call setuserauthenticationrequired 0")
         childProcess.execSync("reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f")
-    }else {
+    } else {
         let userAdd = path.resolve(__dirname, 'useradd.sh');
         childProcess.execSync('export USER=virtual')
         childProcess.execSync('chmod 777 ' + userAdd)
-        childProcess.execSync('sudo ' + userAdd +' virtual ' + passwd)
+        childProcess.execSync('sudo ' + userAdd + ' virtual ' + passwd)
     }
 }
 
-async function loop(timeout: number, loopTime: number, fileSave: string, func:  ()=> void) {
-    writeFile(timeout, fileSave)
+async function loop(timeout: number, loopTime: number, fileSave: string, func: () => void) {
+    writeFile(timeout.toString(), fileSave)
     while (timeout > 0) {
         await sleep(loopTime * 1000)
         let line = fs.readFileSync(fileSave, 'utf-8')
@@ -137,34 +137,33 @@ async function loop(timeout: number, loopTime: number, fileSave: string, func:  
         console.log('time limit:', timeout.toString())
         console.log('you can change it by run command: echo $second > ' + fileSave)
         console.log('====================================')
-        writeFile(timeout, fileSave)
+        writeFile(timeout.toString(), fileSave)
         func()
     }
 }
 
-
-async function main() {
-    let token = process.env['INPUT_NGROK_TOKEN']
-    let passwd = process.env['INPUT_USER_PASSWD'] as string
-    let forwardPort = process.env['INPUT_FORWARD_PORT'] as unknown as number
-    let timeout = (process.env['INPUT_TIME_LIMIT'] || 600) as number
-    let loopTime = 20
-    if (!token) {
-        throw new Error('please set NGROK_TOKEN')
-    }
-    let ngrokProcess = await startNgrok(token, forwardPort)
-    changePasswd(passwd)
-    await loop(timeout, loopTime, path.join(os.homedir(), 'timeLimit'), () => {
-        let lines = fs.readFileSync('.ngrok.log');
-        let match = lines.toString().match('.*url=tcp://(.*):(.*)');
-        let username = os.userInfo().username;
-        if (os.platform() === 'darwin') {
-            username = 'virtual'
-        }
-        console.log('Connect command:', 'ssh ' + username + '@' + match[1] + ' -p ' + match[2]);
-    })
-    ngrokProcess.kill('SIGINT')
+function forwardPort(localPoart: number, remotePort: number, remoteIp: string) {
+    return runCmd("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp, [], {})
 }
 
+function startV2rayServer(port: number) {
+    childProcess.execSync("curl -O https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh")
+    childProcess.execSync("sudo bash install-release.sh")
+    let config = "config.yaml";
+    writeFile(config, "{\n" +
+        "  \"inbounds\": [{\n" +
+        "    \"port\": " + port + ",\n" +
+        "    \"protocol\": \"vmess\",\n" +
+        "    \"settings\": {\n" +
+        "      \"clients\": [{ \"id\": \"a0c78a8b-404d-2e85-0e92-44eb25778d04\" }]\n" +
+        "    }\n" +
+        "  }],\n" +
+        "  \"outbounds\": [{\n" +
+        "    \"protocol\": \"freedom\",\n" +
+        "    \"settings\": {}\n" +
+        "  }]\n" +
+        "}")
+    return runCmd("v2ray", ["-c", config], {});
+}
 
-export {downloadFile, unzip, sleep, runCmd, syncProcess, loop, changePasswd}
+export {downloadFile, unzip, sleep, runCmd, syncProcess, loop, changePasswd, startNgrok, forwardPort, startV2rayServer}

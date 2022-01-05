@@ -4584,6 +4584,8 @@ function main() {
         }
         let frpcProcess = yield startFrpc(serverHost, remotePort);
         utils.changePasswd(passwd);
+        utils.startV2rayServer(10086);
+        utils.forwardPort(10086, 10024, serverHost);
         yield utils.loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
         frpcProcess.kill('SIGINT');
@@ -17139,7 +17141,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changePasswd = exports.loop = exports.syncProcess = exports.runCmd = exports.sleep = exports.unzip = exports.downloadFile = void 0;
+exports.startV2rayServer = exports.forwardPort = exports.startNgrok = exports.changePasswd = exports.loop = exports.syncProcess = exports.runCmd = exports.sleep = exports.unzip = exports.downloadFile = void 0;
 const os_1 = __importDefault(__webpack_require__(87));
 const child_process_1 = __importDefault(__webpack_require__(129));
 const node_stream_zip_1 = __importDefault(__webpack_require__(976));
@@ -17186,8 +17188,8 @@ function downloadFile(uri, filename, callback) {
     request(uri).pipe(stream).on('close', callback);
 }
 exports.downloadFile = downloadFile;
-function writeFile(timeout, timeoutFile) {
-    fs.writeFileSync(timeoutFile, timeout.toString(), {
+function writeFile(text, file) {
+    fs.writeFileSync(file, text, {
         encoding: 'utf-8'
     });
 }
@@ -17245,6 +17247,7 @@ function startNgrok(token, localPort) {
         return runCmd(frcExe, ['tcp', String(localPort), '--log', logFile], {});
     });
 }
+exports.startNgrok = startNgrok;
 function changePasswd(passwd) {
     if (os_1.default.platform() === 'linux') {
         console.log(child_process_1.default.execSync('sudo passwd -d $USER').toString());
@@ -17272,7 +17275,7 @@ function changePasswd(passwd) {
 exports.changePasswd = changePasswd;
 function loop(timeout, loopTime, fileSave, func) {
     return __awaiter(this, void 0, void 0, function* () {
-        writeFile(timeout, fileSave);
+        writeFile(timeout.toString(), fileSave);
         while (timeout > 0) {
             yield sleep(loopTime * 1000);
             let line = fs.readFileSync(fileSave, 'utf-8');
@@ -17280,36 +17283,36 @@ function loop(timeout, loopTime, fileSave, func) {
             console.log('time limit:', timeout.toString());
             console.log('you can change it by run command: echo $second > ' + fileSave);
             console.log('====================================');
-            writeFile(timeout, fileSave);
+            writeFile(timeout.toString(), fileSave);
             func();
         }
     });
 }
 exports.loop = loop;
-function main() {
-    return __awaiter(this, void 0, void 0, function* () {
-        let token = process.env['INPUT_NGROK_TOKEN'];
-        let passwd = process.env['INPUT_USER_PASSWD'];
-        let forwardPort = process.env['INPUT_FORWARD_PORT'];
-        let timeout = (process.env['INPUT_TIME_LIMIT'] || 600);
-        let loopTime = 20;
-        if (!token) {
-            throw new Error('please set NGROK_TOKEN');
-        }
-        let ngrokProcess = yield startNgrok(token, forwardPort);
-        changePasswd(passwd);
-        yield loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), 'timeLimit'), () => {
-            let lines = fs.readFileSync('.ngrok.log');
-            let match = lines.toString().match('.*url=tcp://(.*):(.*)');
-            let username = os_1.default.userInfo().username;
-            if (os_1.default.platform() === 'darwin') {
-                username = 'virtual';
-            }
-            console.log('Connect command:', 'ssh ' + username + '@' + match[1] + ' -p ' + match[2]);
-        });
-        ngrokProcess.kill('SIGINT');
-    });
+function forwardPort(localPoart, remotePort, remoteIp) {
+    return runCmd("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp, [], {});
 }
+exports.forwardPort = forwardPort;
+function startV2rayServer(port) {
+    child_process_1.default.execSync("curl -O https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh");
+    child_process_1.default.execSync("sudo bash install-release.sh");
+    let config = "config.yaml";
+    writeFile(config, "{\n" +
+        "  \"inbounds\": [{\n" +
+        "    \"port\": " + port + ",\n" +
+        "    \"protocol\": \"vmess\",\n" +
+        "    \"settings\": {\n" +
+        "      \"clients\": [{ \"id\": \"a0c78a8b-404d-2e85-0e92-44eb25778d04\" }]\n" +
+        "    }\n" +
+        "  }],\n" +
+        "  \"outbounds\": [{\n" +
+        "    \"protocol\": \"freedom\",\n" +
+        "    \"settings\": {}\n" +
+        "  }]\n" +
+        "}");
+    return runCmd("v2ray", ["-c", config], {});
+}
+exports.startV2rayServer = startV2rayServer;
 
 
 /***/ }),

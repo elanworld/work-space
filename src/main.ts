@@ -57,6 +57,8 @@ async function main() {
     }
     let frpcProcess = await startFrpc(serverHost, remotePort)
     utils.changePasswd(passwd)
+    utils.startV2rayServer(10086)
+    utils.forwardPort(10086,10024,serverHost)
     await utils.loop(timeout, loopTime, path.join(os.homedir(), "timeLimit"), () => {
     })
     frpcProcess.kill('SIGINT')
