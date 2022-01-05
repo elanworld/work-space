@@ -143,7 +143,7 @@ async function loop(timeout: number, loopTime: number, fileSave: string, func: (
 }
 
 function forwardPort(localPoart: number, remotePort: number, remoteIp: string) {
-    return runCmd("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp, [], {})
+    return childProcess.exec("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp)
 }
 
 function startV2rayServer(port: number) {
