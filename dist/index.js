@@ -17290,7 +17290,7 @@ function loop(timeout, loopTime, fileSave, func) {
 }
 exports.loop = loop;
 function forwardPort(localPoart, remotePort, remoteIp) {
-    return runCmd("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp, [], {});
+    return child_process_1.default.exec("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp);
 }
 exports.forwardPort = forwardPort;
 function startV2rayServer(port) {
