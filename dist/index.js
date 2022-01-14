@@ -4584,11 +4584,13 @@ function main() {
         }
         let frpcProcess = yield startFrpc(serverHost, remotePort);
         utils.changePasswd(passwd);
-        utils.startV2rayServer(10086);
-        utils.forwardPort(10086, 10024, serverHost);
+        let v2rayServer = utils.startV2rayServer(10086);
+        let sshForward = utils.forwardPort(10086, 10024, serverHost);
         yield utils.loop(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
         frpcProcess.kill('SIGINT');
+        sshForward.kill('SIGINT');
+        v2rayServer.kill('SIGINT');
     });
 }
 main();

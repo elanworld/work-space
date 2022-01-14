@@ -57,11 +57,13 @@ async function main() {
     }
     let frpcProcess = await startFrpc(serverHost, remotePort)
     utils.changePasswd(passwd)
-    utils.startV2rayServer(10086)
-    utils.forwardPort(10086,10024,serverHost)
+    let v2rayServer = utils.startV2rayServer(10086);
+    let sshForward = utils.forwardPort(10086,10024,serverHost);
     await utils.loop(timeout, loopTime, path.join(os.homedir(), "timeLimit"), () => {
     })
     frpcProcess.kill('SIGINT')
+    sshForward.kill('SIGINT')
+    v2rayServer.kill('SIGINT')
 }
 
 
