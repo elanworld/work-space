@@ -20,7 +20,7 @@ async function startFrpc(server: string, remotePort: number) {
         await utils.syncProcess(resolve => utils.downloadFile(fileUrl, filename, () => resolve("")))
     }
     if (!fs.existsSync(dirName)) {
-        let tar = utils.runCmd("tar", ["-xf", filename], {})
+        let tar = utils.runSpawn("tar", ["-xf", filename], {})
         await utils.syncProcess(resolve => tar.on("exit", () => resolve('')))
         process.chdir(dirName)
         childProcess.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = "
@@ -29,7 +29,7 @@ async function startFrpc(server: string, remotePort: number) {
     } else {
         process.chdir(dirName)
     }
-    let frpc = utils.runCmd("./frpc", [], {})
+    let frpc = utils.runSpawn("./frpc", [], {})
     return frpc
 }
 

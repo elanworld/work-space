@@ -7,8 +7,19 @@ const request = require('request')
 const fs = require('fs')
 
 
-function runCmd(cmd: string, arg: readonly string[], options: childProcess.SpawnOptionsWithoutStdio) {
+function runSpawn(cmd: string, arg: readonly string[], options: childProcess.SpawnOptionsWithoutStdio) {
     let process = childProcess.spawn(cmd, arg, options)
+    process.stdout && process.stdout.on('data', function (data) {
+        console.log(data.toString())
+    })
+    process.stderr && process.stderr.on('data', function (data) {
+        console.log(data.toString())
+    })
+    return process
+}
+
+function runExec(cmd: string) {
+    let process = childProcess.exec(cmd);
     process.stdout && process.stdout.on('data', function (data) {
         console.log(data.toString())
     })
@@ -49,7 +60,7 @@ function downloadFile(uri: string, filename: string, callback: () => void) {
 
 }
 
-function writeFile(text: string, file: string) {
+function writeFile(file: string, text: string) {
     fs.writeFileSync(file, text, {
         encoding: 'utf-8'
     })
@@ -102,7 +113,7 @@ async function startNgrok(token: string, localPort: number) {
         childProcess.execSync('chmod 777 ngrok')
     }
     childProcess.execSync(frcExe + ' authtoken ' + token);
-    return runCmd(frcExe, ['tcp', String(localPort), '--log', logFile], {})
+    return runSpawn(frcExe, ['tcp', String(localPort), '--log', logFile], {})
 }
 
 function changePasswd(passwd: string) {
@@ -129,7 +140,7 @@ function changePasswd(passwd: string) {
 }
 
 async function loop(timeout: number, loopTime: number, fileSave: string, func: () => void) {
-    writeFile(timeout.toString(), fileSave)
+    writeFile(fileSave, timeout.toString())
     while (timeout > 0) {
         await sleep(loopTime * 1000)
         let line = fs.readFileSync(fileSave, 'utf-8')
@@ -137,20 +148,20 @@ async function loop(timeout: number, loopTime: number, fileSave: string, func: (
         console.log('time limit:', timeout.toString())
         console.log('you can change it by run command: echo $second > ' + fileSave)
         console.log('====================================')
-        writeFile(timeout.toString(), fileSave)
+        writeFile(fileSave, timeout.toString())
         func()
     }
 }
 
 function forwardPort(localPoart: number, remotePort: number, remoteIp: string) {
-    return childProcess.exec("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp)
+    return runExec("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp)
 }
 
 function startV2rayServer(port: number) {
     childProcess.execSync("curl -O https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh")
     childProcess.execSync("sudo bash install-release.sh")
     let config = "config.yaml";
-    writeFile("{\n" +
+    writeFile(config, "{\n" +
         "  \"inbounds\": [{\n" +
         "    \"port\": " + port + ",\n" +
         "    \"protocol\": \"vmess\",\n" +
@@ -162,8 +173,19 @@ function startV2rayServer(port: number) {
         "    \"protocol\": \"freedom\",\n" +
         "    \"settings\": {}\n" +
         "  }]\n" +
-        "}", config)
-    return runCmd("v2ray", ["-c", config], {});
+        "}")
+    return runSpawn("v2ray", ["-c", config], {});
 }
 
-export {downloadFile, unzip, sleep, runCmd, syncProcess, loop, changePasswd, startNgrok, forwardPort, startV2rayServer}
+export {
+    downloadFile,
+    unzip,
+    sleep,
+    runSpawn,
+    syncProcess,
+    loop,
+    changePasswd,
+    startNgrok,
+    forwardPort,
+    startV2rayServer
+}
