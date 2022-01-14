@@ -150,7 +150,7 @@ function startV2rayServer(port: number) {
     childProcess.execSync("curl -O https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh")
     childProcess.execSync("sudo bash install-release.sh")
     let config = "config.yaml";
-    writeFile(config, "{\n" +
+    writeFile("{\n" +
         "  \"inbounds\": [{\n" +
         "    \"port\": " + port + ",\n" +
         "    \"protocol\": \"vmess\",\n" +
@@ -162,7 +162,7 @@ function startV2rayServer(port: number) {
         "    \"protocol\": \"freedom\",\n" +
         "    \"settings\": {}\n" +
         "  }]\n" +
-        "}")
+        "}", config)
     return runCmd("v2ray", ["-c", config], {});
 }
 
