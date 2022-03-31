@@ -159,6 +159,7 @@ async function loopWaitAction(timeout: number, loopTime: number, fileSave: strin
         timeout = parseInt(line) - loopTime
         console.log('time limit:', timeout.toString())
         console.log('you can change it by run command: echo $second > ' + fileSave)
+        console.log("user:", getUser())
         console.log('====================================')
         writeFile(fileSave, timeout.toString())
         func()

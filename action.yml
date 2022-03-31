@@ -4,9 +4,9 @@ inputs:
   user_passwd:
     required: true
     description: 'set ssh password'
-  server_host:
+  npc_command:
     required: true
-    description: 'server host for redirect part'
+    description: 'npc run command in the npc web'
   time_limit:
     required: false
     default: 600
