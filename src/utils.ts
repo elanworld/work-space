@@ -116,9 +116,22 @@ async function startNgrok(token: string, localPort: number) {
     return runSpawn(frcExe, ['tcp', String(localPort), '--log', logFile], {})
 }
 
-function changePasswd(passwd: string) {
+function getUser(): string | undefined {
+    let user = undefined
     if (os.platform() === 'linux') {
-        console.log(childProcess.execSync('sudo passwd -d $USER').toString());
+        user = process.env['USER']
+    } else if (os.platform() === 'win32') {
+        user = process.env.USERNAME
+    } else {
+        user = "virtual"
+    }
+    return user
+}
+
+function changePasswd(passwd: string) {
+    let envUser = getUser();
+    if (os.platform() === 'linux') {
+        console.log(childProcess.execSync('sudo passwd -d ' + envUser).toString());
         let chpasswd = childProcess.spawn('passwd')
         chpasswd.stdin.write(passwd + '\n' + passwd + '\n')
         chpasswd.stdin.end()
@@ -126,20 +139,19 @@ function changePasswd(passwd: string) {
         childProcess.execSync("sudo sed -i -e 's#\\#StrictModes yes#StrictModes no#' /etc/ssh/sshd_config")
         childProcess.execSync('sudo systemctl restart ssh')
     } else if (os.platform() === 'win32') {
-        let user = process.env.USERNAME;
-        childProcess.execSync('net user ' + user + ' ' + passwd)
+        childProcess.execSync('net user ' + envUser + ' ' + passwd)
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_terminalservicesetting where (__CLASS != \"\") call setallowtsconnections 1")
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_tsgeneralsetting where (TerminalName ='RDP-Tcp') call setuserauthenticationrequired 0")
         childProcess.execSync("reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f")
     } else {
         let userAdd = path.resolve(__dirname, 'useradd.sh');
-        childProcess.execSync('export USER=virtual')
+        childProcess.execSync('export USER=' + envUser)
         childProcess.execSync('chmod 777 ' + userAdd)
         childProcess.execSync('sudo ' + userAdd + ' virtual ' + passwd)
     }
 }
 
-async function loop(timeout: number, loopTime: number, fileSave: string, func: () => void) {
+async function loopWaitAction(timeout: number, loopTime: number, fileSave: string, func: () => void) {
     writeFile(fileSave, timeout.toString())
     while (timeout > 0) {
         await sleep(loopTime * 1000)
@@ -177,15 +189,67 @@ function startV2rayServer(port: number) {
     return runSpawn("v2ray", ["-c", config], {});
 }
 
+async function startFrpc(server: string, remotePort: number) {
+    let workDirectory = path.join(os.homedir(), "cache-work")
+    const fileUrl = 'https://github.com/fatedier/frp/releases/download/v0.38.0/frp_0.38.0_linux_amd64.tar.gz'
+    const dirName = 'frp_0.38.0_linux_amd64'
+    const filename = dirName + '.tar.gz'
+    if (!fs.existsSync(workDirectory)) {
+        fs.mkdirSync(workDirectory, {recursive: true})
+    }
+    process.chdir(workDirectory)
+    if (fs.existsSync(filename)) {
+        console.log("file exists:" + filename)
+    } else {
+        await syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")))
+    }
+    if (!fs.existsSync(dirName)) {
+        let tar = runSpawn("tar", ["-xf", filename], {})
+        await syncProcess(resolve => tar.on("exit", () => resolve('')))
+        process.chdir(dirName)
+        childProcess.execSync("sed -i -e 's#server_addr = 127.0.0.1#server_addr = "
+            + server + "#' -e 's#remote_port = 6000#remote_port = "
+            + remotePort + "#' frpc.ini")
+    } else {
+        process.chdir(dirName)
+    }
+    let frpc = runSpawn("./frpc", [], {})
+    return frpc
+}
+
+async function startNpc(command: string) {
+    let workDirectory = path.join(os.homedir(), "cache-work")
+    if (!fs.existsSync(workDirectory)) {
+        fs.mkdirSync(workDirectory, {recursive: true})
+    }
+    process.chdir(workDirectory)
+    const fileUrl = 'https://github.com/ehang-io/nps/releases/download/v0.26.10/linux_amd64_client.tar.gz'
+    const filename = '.linux_amd64_client.tar.gz'
+    if (fs.existsSync(filename)) {
+        console.log("file exists:" + filename)
+    } else {
+        await syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")))
+    }
+    if (!fs.existsSync("npc")) {
+        let tar = runSpawn("tar", ["-xf", filename], {})
+        await syncProcess(resolve => tar.on("exit", () => resolve('')))
+    }
+    return runExec(command)
+
+}
+
 export {
     downloadFile,
     unzip,
     sleep,
     runSpawn,
     syncProcess,
-    loop,
+    loopWaitAction,
+    getUser,
     changePasswd,
     startNgrok,
     forwardPort,
-    startV2rayServer
+    startV2rayServer,
+    startFrpc,
+    startNpc,
 }

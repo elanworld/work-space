@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/elanworld/work-space#readme",
   "dependencies": {
+    "@actions/core": "^1.6.0",
     "@types/node": "^16.11.10",
     "@zeit/ncc": "^0.22.3",
     "node-stream-zip": "^1.15.0",
