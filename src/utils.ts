@@ -18,6 +18,18 @@ function runSpawn(cmd: string, arg: readonly string[], options: childProcess.Spa
     return process
 }
 
+function runCmdHold(cmd: string, options?: childProcess.SpawnOptionsWithoutStdio) {
+    let strings = cmd.split(" ");
+    let process = childProcess.spawn(strings[0], strings.slice(1,strings.length-1), options)
+    process.stdout && process.stdout.on('data', function (data) {
+        console.log(data.toString())
+    })
+    process.stderr && process.stderr.on('data', function (data) {
+        console.log(data.toString())
+    })
+    return process
+}
+
 function runExec(cmd: string) {
     let process = childProcess.exec(cmd);
     process.stdout && process.stdout.on('data', function (data) {
@@ -235,7 +247,7 @@ async function startNpc(command: string) {
         let tar = runSpawn("tar", ["-xf", filename], {})
         await syncProcess(resolve => tar.on("exit", () => resolve('')))
     }
-    return runExec(command)
+    return runCmdHold(command)
 
 }
 

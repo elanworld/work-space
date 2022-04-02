@@ -17122,6 +17122,17 @@ function runSpawn(cmd, arg, options) {
     return process;
 }
 exports.runSpawn = runSpawn;
+function runCmdHold(cmd, options) {
+    let strings = cmd.split(" ");
+    let process = child_process_1.default.spawn(strings[0], strings.slice(1, strings.length - 1), options);
+    process.stdout && process.stdout.on('data', function (data) {
+        console.log(data.toString());
+    });
+    process.stderr && process.stderr.on('data', function (data) {
+        console.log(data.toString());
+    });
+    return process;
+}
 function runExec(cmd) {
     let process = child_process_1.default.exec(cmd);
     process.stdout && process.stdout.on('data', function (data) {
@@ -17352,7 +17363,7 @@ function startNpc(command) {
             let tar = runSpawn("tar", ["-xf", filename], {});
             yield syncProcess(resolve => tar.on("exit", () => resolve('')));
         }
-        return runExec(command);
+        return runCmdHold(command);
     });
 }
 exports.startNpc = startNpc;
