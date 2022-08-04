@@ -236,22 +236,29 @@ async function startNpc(command: string | undefined, server: string | undefined,
         fs.mkdirSync(workDirectory, {recursive: true})
     }
     process.chdir(workDirectory)
-    const fileUrl = 'https://github.com/ehang-io/nps/releases/download/v0.26.10/linux_amd64_client.tar.gz'
-    const filename = '.linux_amd64_client.tar.gz'
+    let fileUrl: string
+    if (os.platform() === 'win32') {
+        fileUrl = 'https://github.com/ehang-io/nps/releases/download/v0.26.10/windows_amd64_client.tar.gz'
+    } else if (os.platform() === 'linux') {
+        fileUrl = 'https://github.com/ehang-io/nps/releases/download/v0.26.10/linux_amd64_client.tar.gz'
+    } else if (os.platform() == 'darwin') {
+        fileUrl = 'https://github.com/ehang-io/nps/releases/download/v0.26.10/darwin_amd64_client.tar.gz'
+    }
+    const filename = '.client.tar.gz'
     if (fs.existsSync(filename)) {
         console.log("file exists:" + filename)
     } else {
         await syncProcess(resolve => downloadFile(fileUrl, filename, () => resolve("")))
     }
-    if (!fs.existsSync("npc")) {
+    if (!fs.existsSync("config")) {
         let tar = runSpawn("tar", ["-xf", filename], {})
         await syncProcess(resolve => tar.on("exit", () => resolve('')))
     }
     if (command) {
     } else if (os.platform() === 'win32') {
-        command = "npc " + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
+        command = "npc" + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
     } else {
-        command = "./npc " + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
+        command = "./npc" + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
     }
     return runCmdHold(command)
 

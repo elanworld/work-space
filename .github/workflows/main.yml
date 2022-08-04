@@ -33,7 +33,7 @@ jobs:
           user: alan
       # Runs a set of commands using the runners shell
       - name: Start server action
-        uses: elanworld/work-space@main
+        uses: elanworld/work-space@windows
         with:
           user_passwd: ${{ secrets.USER_PASSWD }}
           npc_command: ${{ secrets.NPC_COMMAND }}
