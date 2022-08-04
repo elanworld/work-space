@@ -20,7 +20,7 @@ function runSpawn(cmd: string, arg: readonly string[], options: childProcess.Spa
 
 function runCmdHold(cmd: string, options?: childProcess.SpawnOptionsWithoutStdio) {
     let strings = cmd.split(" ");
-    let process = childProcess.spawn(strings[0], strings.slice(1,strings.length-1), options)
+    let process = childProcess.spawn(strings[0], strings.slice(1, strings.length - 1), options)
     process.stdout && process.stdout.on('data', function (data) {
         console.log(data.toString())
     })
@@ -155,7 +155,7 @@ function changePasswd(passwd: string) {
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_terminalservicesetting where (__CLASS != \"\") call setallowtsconnections 1")
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_tsgeneralsetting where (TerminalName ='RDP-Tcp') call setuserauthenticationrequired 0")
         childProcess.execSync("reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f")
-    } else if(os.platform() === 'darwin'){
+    } else if (os.platform() === 'darwin') {
         let userAdd = path.resolve(__dirname, 'useradd.sh');
         childProcess.execSync('export USER=' + envUser)
         childProcess.execSync('chmod 777 ' + userAdd)
@@ -230,7 +230,7 @@ async function startFrpc(server: string, remotePort: number) {
     return frpc
 }
 
-async function startNpc(command: string) {
+async function startNpc(command: string | undefined, server: string | undefined, vkey: string | undefined) {
     let workDirectory = path.join(os.homedir(), "cache-work")
     if (!fs.existsSync(workDirectory)) {
         fs.mkdirSync(workDirectory, {recursive: true})
@@ -246,6 +246,12 @@ async function startNpc(command: string) {
     if (!fs.existsSync("npc")) {
         let tar = runSpawn("tar", ["-xf", filename], {})
         await syncProcess(resolve => tar.on("exit", () => resolve('')))
+    }
+    if (command) {
+    } else if (os.platform() === 'win32') {
+        command = "npc " + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
+    } else {
+        command = "./npc " + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
     }
     return runCmdHold(command)
 

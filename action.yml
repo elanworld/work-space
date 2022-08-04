@@ -5,8 +5,14 @@ inputs:
     required: true
     description: 'set ssh password'
   npc_command:
-    required: true
-    description: 'npc run command in the npc web'
+    required: false
+    description: 'npc run command in the nps web'
+  npc_server:
+    required: false
+    description: 'nps address'
+  npc_vkey:
+    required: false
+    description: 'npc vkey in the nps web'
   time_limit:
     required: false
     default: 600

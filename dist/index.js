@@ -4528,7 +4528,7 @@ const path_1 = __importDefault(__webpack_require__(622));
 const os_1 = __importDefault(__webpack_require__(87));
 function local() {
     return __awaiter(this, void 0, void 0, function* () {
-        let childProcess1 = yield utils.startNpc("./npc");
+        let childProcess1 = yield utils.startNpc("./npc", undefined, undefined);
         yield utils.loopWaitAction(9, 3, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
         childProcess1.kill('SIGINT');
@@ -4540,13 +4540,21 @@ function main() {
         if (process.argv[2] === "local") {
             yield local();
         }
-        let npcCmd = process.env["INPUT_NPC_COMMAND"] || "";
+        let npcCmd = process.env["INPUT_NPC_COMMAND"] || undefined;
+        let npcServer = process.env["INPUT_NPC_SERVER"] || undefined;
+        let npcVkey = process.env["INPUT_NPC_VKEY"] || undefined;
         let timeout = (process.env["INPUT_TIME_LIMIT"] || 600);
         let passwd = process.env["INPUT_USER_PASSWD"] + "\n";
         passwd += passwd;
         let loopTime = 30;
         utils.changePasswd(passwd);
-        let childProcessWithoutNullStreams = yield utils.startNpc(npcCmd);
+        let childProcessWithoutNullStreams;
+        if (npcServer && npcVkey) {
+            childProcessWithoutNullStreams = yield utils.startNpc(undefined, npcServer, npcVkey);
+        }
+        else {
+            childProcessWithoutNullStreams = yield utils.startNpc(npcCmd, undefined, undefined);
+        }
         yield utils.loopWaitAction(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
         childProcessWithoutNullStreams.kill('SIGINT');
@@ -17342,7 +17350,7 @@ function startFrpc(server, remotePort) {
     });
 }
 exports.startFrpc = startFrpc;
-function startNpc(command) {
+function startNpc(command, server, vkey) {
     return __awaiter(this, void 0, void 0, function* () {
         let workDirectory = path_1.default.join(os_1.default.homedir(), "cache-work");
         if (!fs.existsSync(workDirectory)) {
@@ -17360,6 +17368,14 @@ function startNpc(command) {
         if (!fs.existsSync("npc")) {
             let tar = runSpawn("tar", ["-xf", filename], {});
             yield syncProcess(resolve => tar.on("exit", () => resolve('')));
+        }
+        if (command) {
+        }
+        else if (os_1.default.platform() === 'win32') {
+            command = "npc " + " -server=" + server + " -vkey=" + vkey + " -type=tcp";
+        }
+        else {
+            command = "./npc " + " -server=" + server + " -vkey=" + vkey + " -type=tcp";
         }
         return runCmdHold(command);
     });
