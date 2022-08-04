@@ -37,4 +37,6 @@ jobs:
         with:
           user_passwd: ${{ secrets.USER_PASSWD }}
           npc_command: ${{ secrets.NPC_COMMAND }}
+          npc_server: ${{ secrets.NPC_SERVER }}
+          npc_vkey: ${{ secrets.NPC_VKEY }}
           time_limit: 3600
