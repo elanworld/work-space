@@ -23,12 +23,10 @@ async function main() {
     passwd += passwd
     let loopTime = 30
     utils.changePasswd(passwd)
-    let frpcProcess = await utils.startNpc(npcCmd)
-    let v2rayServer = utils.startV2rayServer(1080);
+    let childProcessWithoutNullStreams = await utils.startNpc(npcCmd)
     await utils.loopWaitAction(timeout, loopTime, path.join(os.homedir(), "timeLimit"), () => {
     })
-    frpcProcess.kill('SIGINT')
-    v2rayServer.kill('SIGINT')
+    childProcessWithoutNullStreams.kill('SIGINT')
 }
 
 

@@ -4546,12 +4546,10 @@ function main() {
         passwd += passwd;
         let loopTime = 30;
         utils.changePasswd(passwd);
-        let frpcProcess = yield utils.startNpc(npcCmd);
-        let v2rayServer = utils.startV2rayServer(1080);
+        let childProcessWithoutNullStreams = yield utils.startNpc(npcCmd);
         yield utils.loopWaitAction(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
-        frpcProcess.kill('SIGINT');
-        v2rayServer.kill('SIGINT');
+        childProcessWithoutNullStreams.kill('SIGINT');
     });
 }
 main();
@@ -17263,7 +17261,7 @@ function changePasswd(passwd) {
         child_process_1.default.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_tsgeneralsetting where (TerminalName ='RDP-Tcp') call setuserauthenticationrequired 0");
         child_process_1.default.execSync("reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f");
     }
-    else {
+    else if (os_1.default.platform() === 'darwin') {
         let userAdd = path_1.default.resolve(__dirname, 'useradd.sh');
         child_process_1.default.execSync('export USER=' + envUser);
         child_process_1.default.execSync('chmod 777 ' + userAdd);

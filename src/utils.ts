@@ -155,7 +155,7 @@ function changePasswd(passwd: string) {
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_terminalservicesetting where (__CLASS != \"\") call setallowtsconnections 1")
         childProcess.execSync("wmic /namespace:\\\\root\\cimv2\\terminalservices path win32_tsgeneralsetting where (TerminalName ='RDP-Tcp') call setuserauthenticationrequired 0")
         childProcess.execSync("reg add \"HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\" /v fSingleSessionPerUser /t REG_DWORD /d 0 /f")
-    } else {
+    } else if(os.platform() === 'darwin'){
         let userAdd = path.resolve(__dirname, 'useradd.sh');
         childProcess.execSync('export USER=' + envUser)
         childProcess.execSync('chmod 777 ' + userAdd)
