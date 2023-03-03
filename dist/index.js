@@ -17362,7 +17362,7 @@ function startNpc(command) {
             yield syncProcess(resolve => tar.on("exit", () => resolve('')));
         }
         if (os_1.default.platform() === 'win32') {
-            command.replace("./", "");
+            command = command.replace("./", "");
         }
         return runCmdHold(command);
     });

@@ -233,7 +233,7 @@ async function startNpc(command: string) {
         await syncProcess(resolve => tar.on("exit", () => resolve('')))
     }
     if (os.platform() === 'win32') {
-        command.replace("./", "")
+        command = command.replace("./", "")
     }
     return runCmdHold(command)
 
