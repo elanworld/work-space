@@ -7,12 +7,6 @@ inputs:
   npc_command:
     required: false
     description: 'npc run command in the nps web'
-  npc_server:
-    required: false
-    description: 'nps address'
-  npc_vkey:
-    required: false
-    description: 'npc vkey in the nps web'
   time_limit:
     required: false
     default: 600

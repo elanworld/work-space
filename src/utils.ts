@@ -160,6 +160,8 @@ function changePasswd(passwd: string) {
         childProcess.execSync('export USER=' + envUser)
         childProcess.execSync('chmod 777 ' + userAdd)
         childProcess.execSync('sudo ' + userAdd + ' virtual ' + passwd)
+    } else {
+        throw new Error("plat not support!")
     }
 }
 
@@ -176,30 +178,6 @@ async function loopWaitAction(timeout: number, loopTime: number, fileSave: strin
         writeFile(fileSave, timeout.toString())
         func()
     }
-}
-
-function forwardPort(localPoart: number, remotePort: number, remoteIp: string) {
-    return runExec("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp)
-}
-
-function startV2rayServer(port: number) {
-    childProcess.execSync("curl -O https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh")
-    childProcess.execSync("sudo bash install-release.sh")
-    let config = "config.yaml";
-    writeFile(config, "{\n" +
-        "  \"inbounds\": [{\n" +
-        "    \"port\": " + port + ",\n" +
-        "    \"protocol\": \"vmess\",\n" +
-        "    \"settings\": {\n" +
-        "      \"clients\": [{ \"id\": \"a0c78a8b-404d-2e85-0e92-44eb25778d04\" }]\n" +
-        "    }\n" +
-        "  }],\n" +
-        "  \"outbounds\": [{\n" +
-        "    \"protocol\": \"freedom\",\n" +
-        "    \"settings\": {}\n" +
-        "  }]\n" +
-        "}")
-    return runSpawn("v2ray", ["-c", config], {});
 }
 
 async function startFrpc(server: string, remotePort: number) {
@@ -230,7 +208,7 @@ async function startFrpc(server: string, remotePort: number) {
     return frpc
 }
 
-async function startNpc(command: string | undefined, server: string | undefined, vkey: string | undefined) {
+async function startNpc(command: string) {
     let workDirectory = path.join(os.homedir(), "cache-work")
     if (!fs.existsSync(workDirectory)) {
         fs.mkdirSync(workDirectory, {recursive: true})
@@ -254,11 +232,8 @@ async function startNpc(command: string | undefined, server: string | undefined,
         let tar = runSpawn("tar", ["-xf", filename], {})
         await syncProcess(resolve => tar.on("exit", () => resolve('')))
     }
-    if (command) {
-    } else if (os.platform() === 'win32') {
-        command = "npc" + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
-    } else {
-        command = "./npc" + " -server=" + server + " -vkey=" + vkey + " -type=tcp"
+    if (os.platform() === 'win32') {
+        command.replace("./", "")
     }
     return runCmdHold(command)
 
@@ -274,8 +249,6 @@ export {
     getUser,
     changePasswd,
     startNgrok,
-    forwardPort,
-    startV2rayServer,
     startFrpc,
     startNpc,
 }

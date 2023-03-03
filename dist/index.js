@@ -4526,9 +4526,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const utils = __importStar(__webpack_require__(611));
 const path_1 = __importDefault(__webpack_require__(622));
 const os_1 = __importDefault(__webpack_require__(87));
-function local() {
+function localTest() {
     return __awaiter(this, void 0, void 0, function* () {
-        let childProcess1 = yield utils.startNpc("./npc", undefined, undefined);
+        let childProcess1 = yield utils.startNpc("./npc");
         yield utils.loopWaitAction(9, 3, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
         childProcess1.kill('SIGINT');
@@ -4537,23 +4537,27 @@ function local() {
 }
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
-        if (process.argv[2] === "local") {
-            yield local();
+        if (process.argv[2] === "localTest") {
+            yield localTest();
         }
         let npcCmd = process.env["INPUT_NPC_COMMAND"] || undefined;
-        let npcServer = process.env["INPUT_NPC_SERVER"] || undefined;
-        let npcVkey = process.env["INPUT_NPC_VKEY"] || undefined;
         let timeout = (process.env["INPUT_TIME_LIMIT"] || 600);
-        let passwd = process.env["INPUT_USER_PASSWD"] + "\n";
-        passwd += passwd;
+        let passwd = process.env["INPUT_USER_PASSWD"];
         let loopTime = 30;
-        utils.changePasswd(passwd);
-        let childProcessWithoutNullStreams;
-        if (npcServer && npcVkey) {
-            childProcessWithoutNullStreams = yield utils.startNpc(undefined, npcServer, npcVkey);
+        if (passwd) {
+            utils.changePasswd(passwd);
         }
         else {
-            childProcessWithoutNullStreams = yield utils.startNpc(npcCmd, undefined, undefined);
+            console.log('USER_PASSWD not set');
+        }
+        let childProcessWithoutNullStreams;
+        if (npcCmd) {
+            childProcessWithoutNullStreams = yield utils.startNpc(npcCmd);
+        }
+        else {
+            let message = 'NPC_COMMAND not set';
+            console.log(message);
+            throw new Error(message);
         }
         yield utils.loopWaitAction(timeout, loopTime, path_1.default.join(os_1.default.homedir(), "timeLimit"), () => {
         });
@@ -17110,7 +17114,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.startNpc = exports.startFrpc = exports.startV2rayServer = exports.forwardPort = exports.startNgrok = exports.changePasswd = exports.getUser = exports.loopWaitAction = exports.syncProcess = exports.runSpawn = exports.sleep = exports.unzip = exports.downloadFile = void 0;
+exports.startNpc = exports.startFrpc = exports.startNgrok = exports.changePasswd = exports.getUser = exports.loopWaitAction = exports.syncProcess = exports.runSpawn = exports.sleep = exports.unzip = exports.downloadFile = void 0;
 const os_1 = __importDefault(__webpack_require__(87));
 const child_process_1 = __importDefault(__webpack_require__(129));
 const node_stream_zip_1 = __importDefault(__webpack_require__(976));
@@ -17275,6 +17279,9 @@ function changePasswd(passwd) {
         child_process_1.default.execSync('chmod 777 ' + userAdd);
         child_process_1.default.execSync('sudo ' + userAdd + ' virtual ' + passwd);
     }
+    else {
+        throw new Error("plat not support!");
+    }
 }
 exports.changePasswd = changePasswd;
 function loopWaitAction(timeout, loopTime, fileSave, func) {
@@ -17294,30 +17301,6 @@ function loopWaitAction(timeout, loopTime, fileSave, func) {
     });
 }
 exports.loopWaitAction = loopWaitAction;
-function forwardPort(localPoart, remotePort, remoteIp) {
-    return runExec("ssh -o ServerAliveInterval=60 -fNR  " + remotePort + ":localhost:" + localPoart + " alan@" + remoteIp);
-}
-exports.forwardPort = forwardPort;
-function startV2rayServer(port) {
-    child_process_1.default.execSync("curl -O https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh");
-    child_process_1.default.execSync("sudo bash install-release.sh");
-    let config = "config.yaml";
-    writeFile(config, "{\n" +
-        "  \"inbounds\": [{\n" +
-        "    \"port\": " + port + ",\n" +
-        "    \"protocol\": \"vmess\",\n" +
-        "    \"settings\": {\n" +
-        "      \"clients\": [{ \"id\": \"a0c78a8b-404d-2e85-0e92-44eb25778d04\" }]\n" +
-        "    }\n" +
-        "  }],\n" +
-        "  \"outbounds\": [{\n" +
-        "    \"protocol\": \"freedom\",\n" +
-        "    \"settings\": {}\n" +
-        "  }]\n" +
-        "}");
-    return runSpawn("v2ray", ["-c", config], {});
-}
-exports.startV2rayServer = startV2rayServer;
 function startFrpc(server, remotePort) {
     return __awaiter(this, void 0, void 0, function* () {
         let workDirectory = path_1.default.join(os_1.default.homedir(), "cache-work");
@@ -17350,7 +17333,7 @@ function startFrpc(server, remotePort) {
     });
 }
 exports.startFrpc = startFrpc;
-function startNpc(command, server, vkey) {
+function startNpc(command) {
     return __awaiter(this, void 0, void 0, function* () {
         let workDirectory = path_1.default.join(os_1.default.homedir(), "cache-work");
         if (!fs.existsSync(workDirectory)) {
@@ -17378,13 +17361,8 @@ function startNpc(command, server, vkey) {
             let tar = runSpawn("tar", ["-xf", filename], {});
             yield syncProcess(resolve => tar.on("exit", () => resolve('')));
         }
-        if (command) {
-        }
-        else if (os_1.default.platform() === 'win32') {
-            command = "npc" + " -server=" + server + " -vkey=" + vkey + " -type=tcp";
-        }
-        else {
-            command = "./npc" + " -server=" + server + " -vkey=" + vkey + " -type=tcp";
+        if (os_1.default.platform() === 'win32') {
+            command.replace("./", "");
         }
         return runCmdHold(command);
     });
